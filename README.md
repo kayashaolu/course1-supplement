@@ -59,7 +59,7 @@ course1-supplement/
 ### Setup
 
 ```bash
-git clone https://github.com/systemthinkinglab/course1-supplement.git
+git clone https://github.com/kayashaolu/course1-supplement.git
 cd course1-supplement
 
 python3 -m venv venv

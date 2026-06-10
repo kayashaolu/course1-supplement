@@ -20,12 +20,13 @@ This lab demonstrates system thinking skills that complement AI capabilities:
 4. Error handling and system resilience
 
 Usage:
-  python3 lesson8_interactive_lab.py           # Run complete lab
-  python3 lesson8_interactive_lab.py 1         # Run experiment 1 only
-  python3 lesson8_interactive_lab.py 2         # Run experiment 2 only
-  python3 lesson8_interactive_lab.py 3         # Run experiment 3 only
-  python3 lesson8_interactive_lab.py 4         # Run experiment 4 only
-  python3 lesson8_interactive_lab.py --help    # Show all options
+  python3 lab2_time_worker.py           # Run complete lab
+  python3 lab2_time_worker.py 1         # Run experiment 1 only
+  python3 lab2_time_worker.py 2         # Run experiment 2 only
+  python3 lab2_time_worker.py 3         # Run experiment 3 only
+  python3 lab2_time_worker.py 4         # Run experiment 4 only
+  python3 lab2_time_worker.py --fast    # Disable typewriter effect
+  python3 lab2_time_worker.py --help    # Show all options
 """
 
 import time
@@ -37,21 +38,32 @@ import argparse
 from datetime import datetime
 from typing import Optional, Dict, List
 
-# Add the repository root to the Python path for imports
-# This allows running from: python labs/course1/lab2_time_worker.py
+# Dual-mode import so this file works in both layouts:
+#   1. Monorepo / standalone:  building_blocks.py and external_entities.py sit
+#      next to this file (sibling import)
+#   2. course1-supplement repo: building_blocks/ is a top-level package; we add
+#      the repo root to sys.path and import from the package
 script_dir = os.path.dirname(os.path.abspath(__file__))
-repo_root = os.path.dirname(os.path.dirname(script_dir))
-sys.path.insert(0, repo_root)
+sys.path.insert(0, script_dir)
+sys.path.insert(0, os.path.dirname(os.path.dirname(script_dir)))
 
 try:
-    from building_blocks.building_blocks import Worker
-    from building_blocks.external_entities import Time
+    # Sibling import — works when the files are next to this lab
+    from building_blocks import Worker
+    from external_entities import Time
 except ImportError:
-    print("Error: Could not import building_blocks module.")
-    print("Please run this script from the repository root:")
-    print("  cd system-thinking-in-the-ai-era")
-    print("  python labs/course1/lab2_time_worker.py")
-    sys.exit(1)
+    try:
+        # Package import — works when building_blocks/ is a top-level package
+        from building_blocks.building_blocks import Worker
+        from building_blocks.external_entities import Time
+    except ImportError:
+        print("Error: Could not import building_blocks / external_entities modules.")
+        print("Expected building_blocks.py and external_entities.py next to this file,")
+        print("OR building_blocks/ package at the repo root (the course1-supplement layout):")
+        print("  git clone https://github.com/kayashaolu/course1-supplement.git")
+        print("  cd course1-supplement")
+        print("  python3 labs/course1/lab2_time_worker.py")
+        sys.exit(1)
 
 
 class TimeWorkerLabExperience:
@@ -911,9 +923,10 @@ def main():
     parser = argparse.ArgumentParser(
         description="Lesson 8: Time + Worker - Scheduled Processing Discovery Lab",
         epilog="Examples:\n"
-               "  python3 lesson8_interactive_lab.py           # Run complete lab\n"
-               "  python3 lesson8_interactive_lab.py 1         # Run experiment 1 only\n"
-               "  python3 lesson8_interactive_lab.py 3         # Run experiment 3 only\n",
+               "  python3 lab2_time_worker.py           # Run complete lab\n"
+               "  python3 lab2_time_worker.py 1         # Run experiment 1 only\n"
+               "  python3 lab2_time_worker.py 3         # Run experiment 3 only\n"
+               "  python3 lab2_time_worker.py --fast    # Disable typewriter effect\n",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     

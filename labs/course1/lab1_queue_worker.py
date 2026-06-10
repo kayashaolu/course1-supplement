@@ -23,24 +23,33 @@ import sys
 import os
 import random
 import argparse
+import itertools
 import threading
 from typing import Optional
 
-# Add the repository root to the Python path for imports
-# This allows running from: python labs/course1/lab1_queue_worker.py
+# Dual-mode import so this file works in both layouts:
+#   1. Monorepo / standalone:  building_blocks.py sits next to this file (sibling import)
+#   2. course1-supplement repo: building_blocks/ is a top-level package; we add the
+#      repo root to sys.path and import from the package
 script_dir = os.path.dirname(os.path.abspath(__file__))
-repo_root = os.path.dirname(os.path.dirname(script_dir))
-sys.path.insert(0, repo_root)
+sys.path.insert(0, script_dir)
+sys.path.insert(0, os.path.dirname(os.path.dirname(script_dir)))
 
-# Import our building blocks
 try:
-    from building_blocks.building_blocks import Service, Queue, Worker
+    # Sibling import — works when building_blocks.py is next to this file
+    from building_blocks import Service, Queue, Worker
 except ImportError:
-    print("Error: Could not import building_blocks module.")
-    print("Please run this script from the repository root:")
-    print("  cd system-thinking-in-the-ai-era")
-    print("  python labs/course1/lab1_queue_worker.py")
-    sys.exit(1)
+    try:
+        # Package import — works when building_blocks/ is a top-level package
+        from building_blocks.building_blocks import Service, Queue, Worker
+    except ImportError:
+        print("Error: Could not import building_blocks module.")
+        print("Expected building_blocks.py next to this file, OR building_blocks/")
+        print("package at the repo root (the course1-supplement layout):")
+        print("  git clone https://github.com/kayashaolu/course1-supplement.git")
+        print("  cd course1-supplement")
+        print("  python3 labs/course1/lab1_queue_worker.py")
+        sys.exit(1)
 
 
 class LabExperience:
@@ -529,7 +538,8 @@ of system thinking!
         worker_stats = worker.get_stats()
         print(f"\n📊 Worker Statistics:")
         print(f"   🔧 Jobs completed: {worker_stats['completed_jobs']}")
-        print(f"   🔧 Success rate: {worker_stats['success_rate']:.1%}")
+        # Worker.get_stats() returns success_rate on a 0-100 scale
+        print(f"   🔧 Success rate: {worker_stats['success_rate']:.1f}%")
         print(f"   🔧 Total jobs processed: {worker_stats['total_jobs']}")
         
         # Cleanup
@@ -617,9 +627,11 @@ The Queue building block will intelligently distribute work!
         self.print_header("PART 1: Queue + Single Worker (Sequential Processing)", style="sub")
         self.print_info("Watch how the Queue routes all tasks to one Worker...")
         
-        # Create Queue + single worker system
+        # Create Queue + single worker system.
+        # max_concurrent_jobs=1 makes this Worker genuinely sequential —
+        # one job at a time — so the Part 2 comparison is honest.
         single_queue = Queue("single_queue")
-        single_worker = Worker("single_worker")
+        single_worker = Worker("single_worker", max_concurrent_jobs=1)
 
         # Register the SAME work functions on single Worker
         def process_image_single(data):
@@ -737,9 +749,11 @@ The Queue building block will intelligently distribute work!
         multi_queue = Queue("multi_queue")
         workers = []
 
-        # Create 3 workers
+        # Create 3 workers. max_concurrent_jobs=1 keeps each Worker sequential,
+        # so the speedup students see comes from the NUMBER of Workers (3x),
+        # not from hidden per-Worker concurrency.
         for i in range(3):
-            worker = Worker(f"worker_{i+1}")
+            worker = Worker(f"worker_{i+1}", max_concurrent_jobs=1)
             workers.append(worker)
 
         # KEY INSIGHT: Register the SAME work functions on ALL workers!
@@ -775,12 +789,15 @@ The Queue building block will intelligently distribute work!
             worker.register_job_type("generate_report", generate_report_handler)
             worker.start()
 
-        # Register Queue subscribers that distribute to multiple workers
+        # Register Queue subscribers that distribute to multiple workers.
+        # Round-robin keeps the load even (3 tasks per Worker), so the
+        # measured speedup reliably lands near 3x.
+        worker_cycle = itertools.cycle(workers)
+
         @multi_queue.subscriber("process_image")
         def multi_queue_image_handler(message):
             task_id = message.get('task_id', '')
-            # Choose worker with least load (random for simplicity)
-            worker = random.choice(workers)
+            worker = next(worker_cycle)
             self.direct_print(f"   📬 Queue distributing to {worker.name}: {task_id}")
             job_id = worker.submit_job("process_image", message)
             return {"status": "distributed", "worker": worker.name, "job_id": job_id}
@@ -788,7 +805,7 @@ The Queue building block will intelligently distribute work!
         @multi_queue.subscriber("send_email")
         def multi_queue_email_handler(message):
             task_id = message.get('task_id', '')
-            worker = random.choice(workers)
+            worker = next(worker_cycle)
             self.direct_print(f"   📬 Queue distributing to {worker.name}: {task_id}")
             job_id = worker.submit_job("send_email", message)
             return {"status": "distributed", "worker": worker.name, "job_id": job_id}
@@ -796,7 +813,7 @@ The Queue building block will intelligently distribute work!
         @multi_queue.subscriber("generate_report")
         def multi_queue_report_handler(message):
             task_id = message.get('task_id', '')
-            worker = random.choice(workers)
+            worker = next(worker_cycle)
             self.direct_print(f"   📬 Queue distributing to {worker.name}: {task_id}")
             job_id = worker.submit_job("generate_report", message)
             return {"status": "distributed", "worker": worker.name, "job_id": job_id}
@@ -854,9 +871,12 @@ The Queue building block will intelligently distribute work!
             worker.stop()
         multi_queue.stop()
         
-        # Store total experiment time (both parts)
-        total_experiment_time = single_time + parallel_time
-        self.experiment_times['experiment_3'] = total_experiment_time
+        # Store the total (for the single-experiment summary) AND both phases
+        # separately, so the conclusion can report them honestly instead of
+        # summing them into a number that makes scaling look slow.
+        self.experiment_times['experiment_3'] = single_time + parallel_time
+        self.experiment_times['experiment_3_single'] = single_time
+        self.experiment_times['experiment_3_parallel'] = parallel_time
         
         # Show dramatic comparison
         print(f"\n{'🎯' * 40}")
@@ -1071,7 +1091,8 @@ for everyone else.
         print(f"\n🔧 Worker Performance:")
         print(f"   Jobs completed: {worker_stats['completed_jobs']}")
         print(f"   Jobs failed: {worker_stats['failed_jobs']}")
-        print(f"   Success rate: {worker_stats['success_rate']:.1%}")
+        # Worker.get_stats() returns success_rate on a 0-100 scale
+        print(f"   Success rate: {worker_stats['success_rate']:.1f}%")
         
         print(f"\n🎯 Overall System Resilience:")
         print(f"   ✅ Successful tasks: {succeeded}")
@@ -1181,7 +1202,8 @@ This is why system thinkers choose Queue + Worker over Service for critical syst
 📊 Your Building Block Comparison Times:
    • Service Building Block: {self.experiment_times.get('experiment_1', 0):.1f}s (UI frozen entire time)
    • Queue + Worker: {self.experiment_times.get('experiment_2', 0):.1f}s (UI always responsive)
-   • Queue → Multiple Workers: {self.experiment_times.get('experiment_3', 0):.1f}s (distributed processing)
+   • Queue → 1 Worker (sequential): {self.experiment_times.get('experiment_3_single', 0):.1f}s
+   • Queue → 3 Workers (parallel):  {self.experiment_times.get('experiment_3_parallel', 0):.1f}s ({(self.experiment_times.get('experiment_3_single', 0) / self.experiment_times.get('experiment_3_parallel', 1) if self.experiment_times.get('experiment_3_parallel', 0) > 0 else 0):.1f}x speedup from distribution)
    • Queue + Worker Resilience: {self.experiment_times.get('experiment_4', 0):.1f}s (handled failures gracefully)
 
 🏗️ You now understand why these companies use Queue + Worker instead of Service alone:
