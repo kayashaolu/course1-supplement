@@ -12,7 +12,7 @@ This technical design document must focus on **building blocks and architectural
 
 **✅ DO USE:**
 - Building block names: Service, Worker, Queue, Key-Value Store, File Store, Relational Database, Vector Database
-- Technology-agnostic terms: cache, indexes, full-text search, CDN, read replicas, async processing
+- Technology-agnostic terms that describe patterns (e.g., cache, indexes, async processing)
 
 **❌ DO NOT USE:**
 - Specific technologies: PostgreSQL, MongoDB, MySQL, Redis, Elasticsearch, RabbitMQ, Kafka, etc.
@@ -29,6 +29,22 @@ Remember: Senior engineers think in patterns that transcend specific technologie
 3. **Ensure consistency** between what you draw and what you write
 
 This approach helps you think systematically and creates more accurate technical descriptions.
+
+## ✏️ Flow Notation: How to Write User Flows
+
+Every flow in this document uses building-block notation. Here is the format, illustrated with a system this course does not cover — a city library's book-reservation system:
+
+```
+Reserve a book: User → Reservation Service → Relational Database (availability check) → Queue → Notification Worker → External Service (SMS)
+Browse the catalog: User → Catalog Service + Key-Value Store → Relational Database (on cache miss)
+```
+
+- Use EXACT building block names: Service, Worker, Queue, Key-Value Store, File Store, Relational Database, Vector Database, User, External Service, Time
+- Use the `+` symbol for building block combinations (e.g., Queue + Worker)
+- Start flows with the external entity that triggers them
+- Annotate a step's purpose in parentheses when it is not obvious
+
+Your flows should look like this in notation — the architecture is yours to design.
 
 ---
 
@@ -55,20 +71,7 @@ This approach helps you think systematically and creates more accurate technical
 *Users can create, edit, and organize recipes with ingredients, instructions, photos, and cooking metadata (prep time, difficulty, servings)*
 
 ### User Flow Design
-**Purpose**: Document the exact paths users take through your system using building block terminology.
-
-**Building Block Requirements:**
-- Use EXACT building block names: Service, Worker, Queue, Key-Value Store, File Store, Relational Database, Vector Database, User, External Service, Time
-- Use + symbol for building block combinations: Service + Key-Value Store, Queue + Worker
-- Start all flows with User (the external entity)
-
-```
-Example formats:
-Recipe Creation: User → Recipe Service → Relational Database
-Recipe Photo Upload: User → Recipe Service → Queue + Worker → File Store
-Recipe Viewing (cached): User → Browse Service + Key-Value Store → File Store
-Recipe Viewing (cache miss): User → Browse Service → Key-Value Store → Relational Database → File Store
-```
+**Purpose**: Document the exact paths users take through your system using building block terminology (see the flow notation section above).
 
 **Your Recipe Management Flows:**
 [Write 3-5 specific flows for recipe management using building block names]
@@ -88,7 +91,7 @@ Recipe Viewing (cache miss): User → Browse Service → Key-Value Store → Rel
 
 **Processing Logic**: [How your Service building blocks handle recipe operations]
 
-**Performance Mechanisms**: [Specific techniques for fast recipe access (caching strategies, indexing approaches, async patterns)]
+**Performance Mechanisms**: [Specific techniques for fast recipe access]
 
 ---
 
@@ -98,14 +101,6 @@ Recipe Viewing (cache miss): User → Browse Service → Key-Value Store → Rel
 ### User Flow Design
 **Purpose**: Document the exact paths users take for social interactions using building block terminology.
 
-```
-Example formats:
-Following a Chef: User → Social Service → Relational Database
-Liking a Recipe: User → Social Service → Relational Database → Key-Value Store (update counts)
-Leaving a Comment: User → Social Service → Queue + Worker → External Service (notification)
-External Sharing: User → Social Service → External Service (social platform integration)
-```
-
 **Your Social Feature Flows:**
 [Write 3-5 specific flows for social interactions using building block names]
 
@@ -114,7 +109,7 @@ External Sharing: User → Social Service → External Service (social platform 
 
 **Key Architectural Decisions:**
 - **[Decision 1]**: [Why you chose specific building blocks for social data vs alternatives]
-- **[Decision 2]**: [Trade-offs between real-time vs async social features]
+- **[Decision 2]**: [Trade-offs you weighed for how social actions are processed]
 - **[Decision 3]**: [How you balance social feature performance with data consistency]
 
 ### Technical Implementation Details
@@ -124,7 +119,7 @@ External Sharing: User → Social Service → External Service (social platform 
 
 **Interaction Processing**: [How your building blocks handle different types of social actions]
 
-**Notification Strategy**: [How you manage social notifications without blocking user actions]
+**Notification Strategy**: [How notifications reach users, and what that means for the user who triggered them]
 
 ---
 
@@ -133,13 +128,6 @@ External Sharing: User → Social Service → External Service (social platform 
 
 ### User Flow Design
 **Purpose**: Document search and discovery paths using building block terminology.
-
-```
-Example formats:
-Search by Ingredients: User → Search Service → Key-Value Store → Relational Database (if cache miss)
-Browse by Category: User → Browse Service + Key-Value Store → File Store (recipe images)
-Multi-Filter Search: User → Search Service → Relational Database + Key-Value Store (cache results)
-```
 
 **Your Discovery & Search Flows:**
 [Write 3-5 specific flows for search and discovery using building block names]
@@ -159,7 +147,7 @@ Multi-Filter Search: User → Search Service → Relational Database + Key-Value
 
 **Query Processing**: [How your Service building blocks handle different search types]
 
-**Performance Optimization**: [Specific techniques for fast search (caching, indexing, pre-computation)]
+**Performance Optimization**: [Specific techniques for fast search]
 
 ---
 
@@ -169,14 +157,6 @@ Multi-Filter Search: User → Search Service → Relational Database + Key-Value
 ### User Flow Design
 **Purpose**: Document profile interaction paths using building block terminology.
 
-```
-Example formats:
-View Chef Profile: User → Profile Service + Key-Value Store → Relational Database (if cache miss)
-Update Profile: User → Profile Service → Relational Database + Key-Value Store (invalidate cache)
-View Popular Recipes: User → Profile Service → Key-Value Store (pre-computed metrics)
-Profile Photo Update: User → Profile Service → Queue + Worker → File Store
-```
-
 **Your User Profile Flows:**
 [Write 3-5 specific flows for profile interactions using building block names]
 
@@ -185,7 +165,7 @@ Profile Photo Update: User → Profile Service → Queue + Worker → File Store
 
 **Key Architectural Decisions:**
 - **[Decision 1]**: [Why you chose specific building blocks for profile data vs alternatives]
-- **[Decision 2]**: [Trade-offs between real-time metrics vs cached metrics]
+- **[Decision 2]**: [Trade-offs you weighed for serving profile statistics]
 - **[Decision 3]**: [How you handle profile completeness and social proof]
 
 ### Technical Implementation Details
@@ -205,14 +185,6 @@ Profile Photo Update: User → Profile Service → Queue + Worker → File Store
 ### User Flow Design
 **Purpose**: Document performance-optimized paths using building block terminology.
 
-```
-Example formats:
-Optimized Recipe Loading: User → Browse Service + Key-Value Store + File Store (parallel requests)
-Efficient Image Upload: User → Upload Service → Queue + Worker (return immediately) → File Store
-Smooth Content Discovery: User → Browse Service → Key-Value Store (pre-cached results)
-Background Processing: Queue + Worker → Relational Database (metrics updates)
-```
-
 **Your Performance-Optimized Flows:**
 [Write 3-5 specific flows showing performance optimizations using building block names]
 
@@ -227,11 +199,11 @@ Background Processing: Queue + Worker → Relational Database (metrics updates)
 ### Technical Implementation Details
 **Purpose**: Describe specific performance mechanisms within building blocks.
 
-**Caching Architecture**: [How you use Key-Value Store building blocks for different performance needs]
+**Page Load Strategy**: [How your building blocks keep recipe pages fast]
 
-**Async Processing Strategy**: [How Queue + Worker combinations handle background operations]
+**Upload Handling Strategy**: [How your building blocks keep uploads reliable under load]
 
-**Content Delivery Optimization**: [How File Store and Service building blocks work together for fast media delivery]
+**Content Delivery**: [How your building blocks work together for fast media delivery]
 
 ---
 
@@ -263,6 +235,6 @@ Background Processing: Queue + Worker → Relational Database (metrics updates)
 - [ ] All 5 requirements addressed with complete user flows
 - [ ] Building blocks properly labeled in diagram
 - [ ] All building blocks connected (no floating components)
-- [ ] User entity connects to Services (not directly to storage)
+- [ ] Flows written in the notation shown at the top of this document
 - [ ] Technical justifications provided for each requirement
 - [ ] Trade-offs and design decisions clearly explained

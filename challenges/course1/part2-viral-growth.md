@@ -14,20 +14,35 @@ Use **building block names** throughout (Service, Worker, Key-Value Store, File 
 
 Before you fill this template in, sketch your evolved architecture using the Google Drawing template linked on the challenge page. Drag the 7 building blocks onto the canvas, draw the data flows, and only *then* write your decisions here. The diagram surfaces design pressure that prose hides.
 
+## ✏️ Flow Notation: How to Write User Flows
+
+Every flow in this document uses building-block notation. Here is the format, illustrated with a system this course does not cover — a city library's book-reservation system:
+
+```
+Reserve a book: User → Reservation Service → Relational Database (availability check) → Queue → Notification Worker → External Service (SMS)
+Browse the catalog: User → Catalog Service + Key-Value Store → Relational Database (on cache miss)
+```
+
+- Use EXACT building block names: Service, Worker, Queue, Key-Value Store, File Store, Relational Database, Vector Database, User, External Service, Time
+- Use the `+` symbol for building block combinations (e.g., Queue + Worker)
+- Annotate a step's purpose in parentheses when it is not obvious
+
+Your flows should look like this in notation — the architecture is yours to design.
+
 ---
 
 ## Crisis Context
 
 *ChefConnect went viral. Daily active users jumped from 10,000 to 2 million in 3 months. The platform is breaking under load: recipe pages load in 4–6 seconds (target <1s), search times out during peak traffic (target <500ms), image uploads fail with 10,000+ concurrent uploads, and user satisfaction has dropped 15% week-over-week.*
 
-**Primary Focus**: Evolve the Part 1 architecture to handle 2M+ users with sub-1-second recipe page loads and sub-500ms search. **NO new features during this crisis** — focus on caching, async processing, and horizontal scaling. The system must be ready to scale to 5M users within 6 months.
+**Primary Focus**: Evolve the Part 1 architecture to handle 2M+ users with sub-1-second recipe page loads and sub-500ms search. **NO new features during this crisis** — the scope is performance and scaling improvements only. The system must be ready to scale to 5M users within 6 months.
 
 ---
 
 ## Architecture Overview
 
 **High-Level Description**:
-[Describe how your Part 1 design evolves to absorb 200x user growth. What is the core idea — heavy caching layer, async decoupling, horizontal scale, or some combination? One paragraph.]
+[Describe how your Part 1 design evolves to absorb 200x user growth. What is the core idea of your scaling approach? One paragraph.]
 
 **Core Building Blocks Used**:
 - [ ] Service (Blue Rectangle)
@@ -80,38 +95,26 @@ Before you fill this template in, sketch your evolved architecture using the Goo
 
 ### User Flow Optimization
 
-**Purpose**: Document performance-optimized user flows using building block terminology.
+**Purpose**: Document performance-optimized user flows using building block terminology (see the flow notation section above).
 
 **Optimized Flows**:
 
-```
-[For each major user flow that was slow, write the new path through your blocks.
-Example:
-  View recipe page (current: 4-6s, target: <1s):
-    User → Service → Key-Value Store (cache hit, 95%)
-                      ↓ on miss
-                      Relational Database → Service caches result → User]
-```
+[For each major user flow that was slow, write the new path through your blocks, noting the current latency and the target.]
 
 ### Architecture Decisions & Trade-offs
 
-**Caching strategy**: [Where cache lives in front of which block, what the TTL is, how invalidation works on writes. Naming the *pattern*, not the tool.]
+**[Scaling decision 1]**: [Name the bottleneck it addresses, the building block change you are making, and why it works. Name the *pattern*, not a tool.]
 
-**Async decoupling**: [Which writes/expensive ops moved behind a Queue + Worker. Why this is safe (caller does not need synchronous result).]
+**[Scaling decision 2]**: [Same.]
 
-**Horizontal scaling**: [Which Services are now run as multiple instances. What state they share via Key-Value Store / Relational Database.]
+**[Scaling decision 3]**: [Same.]
 
 **What you considered and rejected**: [At least one trade-off. Show that you weighed alternatives.]
 
 ### Technical Implementation Details
 
 **Per-block load handling**:
-- **Service**: [How instance count scales with traffic. Stateless requirements.]
-- **Worker**: [Pool size, retry logic, idempotency considerations.]
-- **Key-Value Store**: [Hot keys, eviction policy, miss-handling.]
-- **File Store**: [CDN strategy for read-heavy media. Direct-upload pattern for the 10K concurrent uploads.]
-- **Queue**: [Backpressure behavior. Dead-letter handling.]
-- **Relational Database**: [Read replicas, query optimization, connection pooling at the pattern level.]
+[For each building block in your evolved design, describe how it behaves under 2M-user load: what pressure it absorbs, what changes from Part 1, and what its failure or overflow behavior is.]
 
 ---
 
